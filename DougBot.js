@@ -143,35 +143,35 @@ bot.Dispatcher.on(Event.MESSAGE_CREATE, function (c) {
                           c.message.channel.sendMessage(d.replace(/%user/g, c.message.author.mention).replace(/%server/g, c.message.guild.name).replace(/%channel/, c.message.channel.name))
                         }
                       }).catch((e) => {
-                        Logger.error('Reply check error, ' + e)
+                        Logger.error(Lang.ReplyCheckErrorLog(e))
                       })
                     }
                   }).catch(function (e) {
-                    Logger.error('Permission error: ' + e)
+                    Logger.error(Lang.PermissionError(e))
                   })
                 }
               } else {
                 datacontrol.customize.reply(c.message, 'perms').then((u) => {
                   if (u === null || u === 'default') {
                     if (r > -1 && !commands[cmd].hidden) {
-                      var reason = (r > 4) ? '**This is a master user only command**, ask the bot owner to add you as a master user if you really think you should be able to use this command.' : 'Ask the server owner to modify your level with `setlevel`.'
-                      c.message.channel.sendMessage('You have no permission to run this command!\nYou need level ' + commands[cmd].level + ', you have level ' + r + '\n' + reason)
+                      var reason = (r > 4) ? Lang.MasterOnly : Lang.AskForSetLevel
+                      c.message.channel.sendMessage(Lang.NoPermission(commands, cmd, r, reason))
                     }
                   } else {
                     c.message.channel.sendMessage(u.replace(/%user/g, c.message.author.mention).replace(/%server/g, c.message.guild.name).replace(/%channel/, c.message.channel.name).replace(/%nlevel/, commands[cmd].level).replace(/%ulevel/, r))
                   }
                 }).catch((e) => {
-                  Logger.error('Reply check error, ' + e)
+                  Logger.error(Lang.ReplyCheckErrorLog(e))
                 })
               }
             }).catch(function (e) {
-              Logger.error('Permission error: ' + e)
+              Logger.error(Lang.PermissionError(e))
             })
           }
         })
       } else {
         if (commands[cmd].noDM) {
-          c.message.channel.sendMessage('This command cannot be used in DM, invite the bot to a server and try this command again.')
+          c.message.channel.sendMessage(Lang.GuildOnly)
           return
         }
         datacontrol.permissions.checkLevel(c.message, c.message.author.id, []).then(function (r) {
@@ -179,19 +179,19 @@ bot.Dispatcher.on(Event.MESSAGE_CREATE, function (c) {
             try {
               commands[cmd].fn(c.message, suffix, bot)
             } catch (e) {
-              c.message.channel.sendMessage('An error occured while trying to process this command, you should let the bot author know. \n```' + e + '```')
-              Logger.error(`Command error, thrown by ${commands[cmd].name}: ${e}`)
+              c.message.channel.sendMessage(Lang.CommandError(e))
+              Logger.error(Lang.CommandErrorLog(e))
             }
           } else {
-            c.message.channel.sendMessage('You have no permission to run this command in DM, you probably tried to use restricted commands that are either for master users only or only for server owners.')
+            c.message.channel.sendMessage(Lang.NoPermissionDM)
           }
         }).catch(function (e) {
-          Logger.error('Permission error: ' + e)
+          Logger.error(Lang.PermissionError(e))
         })
       }
     }
   }).catch(function (e) {
-    Logger.error('Prefix error: ' + e)
+    Logger.error(Lang.PrefixError(e))
   })
 })
 
@@ -202,7 +202,7 @@ bot.Dispatcher.on(Event.GUILD_MEMBER_ADD, function (s) {
     if (r === 'on' || r === 'channel') {
       datacontrol.customize.reply(s, 'welcomeMessage').then((x) => {
         if (x === null || x === 'default') {
-          s.guild.generalChannel.sendMessage(`Welcome ${s.member.username} to ${s.guild.name}!`)
+          s.guild.generalChannel.sendMessage(Lang.WelcomeUser(s))
         } else {
           s.guild.generalChannel.sendMessage(x.replace(/%user/g, s.member.mention).replace(/%server/g, s.guild.name))
         }
@@ -212,7 +212,7 @@ bot.Dispatcher.on(Event.GUILD_MEMBER_ADD, function (s) {
     } else if (r === 'private') {
       datacontrol.customize.reply(s, 'welcomeMessage').then((x) => {
         if (x === null || x === 'default') {
-          s.member.openDM().then((g) => g.sendMessage(`Welcome to ${s.guild.name}! Please enjoy your stay!`))
+          s.member.openDM().then((g) => g.sendMessage(Lang.WelcomeUserDM(s)))
         } else {
           s.member.openDM().then((g) => g.sendMessage(x.replace(/%user/g, s.member.mention).replace(/%server/g, s.guild.name)))
         }
@@ -235,7 +235,7 @@ bot.Dispatcher.on(Event.GUILD_CREATE, function (s) {
 })
 
 bot.Dispatcher.on(Event.GATEWAY_RESUMED, function () {
-  Logger.info('Connection to the Discord gateway has been resumed.')
+  Logger.info(Lang.GatewayConnectionResumed)
 })
 
 bot.Dispatcher.on(Event.PRESENCE_MEMBER_INFO_UPDATE, (user) => {
