@@ -22,6 +22,7 @@ var commands = runtime.commandcontrol.Commands
 var aliases = runtime.commandcontrol.Aliases
 var datacontrol = runtime.datacontrol
 var Config
+var Lang
 var restarted = false
 
 Logger.info('Initializing...')
@@ -42,15 +43,15 @@ bot.Dispatcher.on(Event.GATEWAY_READY, function () {
   bot.Users.fetchMembers()
   runtime.internal.versioncheck.versionCheck(function (err, res) {
     if (err) {
-      Logger.error('Version check failed, ' + err)
+      Logger.error(Lang.VersionCheckFailed(err))
     } else if (res) {
-      Logger.info(`Version check: ${res}`)
+      Logger.info(Lang.VersionCheck(res))
     }
   })
-  Logger.info('Ready to start!')
-  Logger.info(`Logged in as ${bot.User.username}#${bot.User.discriminator} (ID: ${bot.User.id}) and serving ${bot.Users.length} users in ${bot.Guilds.length} servers.`)
+  Logger.info(Lang.ReadyToStart)
+  Logger.info(Lang.LoggedInAs(bot))
   if (argv.shutdownwhenready) {
-    console.log('o okei bai')
+    console.log(Lang.Bye)
     process.exit(0)
   }
 })
@@ -93,24 +94,24 @@ bot.Dispatcher.on(Event.MESSAGE_CREATE, function (c) {
       if (typeof commands[cmd] !== 'object') {
         return // ignore JS build-in array functions
       }
-      Logger.info(`Executing <${c.message.resolveContent()}> from ${c.message.author.username}`)
+      Logger.info(Lang.Executing(c))
       if (commands[cmd].level === 'master') {
         if (Config.permissions.master.indexOf(c.message.author.id) > -1) {
           try {
             commands[cmd].fn(c.message, suffix, bot)
           } catch (e) {
-            c.message.channel.sendMessage('An error occured while trying to process this command, you should let the bot author know. \n```' + e + '```')
-            Logger.error(`Command error, thrown by ${commands[cmd].name}: ${e}`)
+            c.message.channel.sendMessage(Lang.CommandError(e))
+            Logger.error(Lang.CommandErrorLog(commands, cmd, e))
           }
         } else {
-          c.message.channel.sendMessage('This command is only for the bot owner.')
+          c.message.channel.sendMessage(Lang.OnlyOwner)
         }
       } else if (!c.message.isPrivate) {
         timeout.check(commands[cmd], c.message.guild.id, c.message.author.id).then((y) => {
           if (y !== true) {
             datacontrol.customize.reply(c.message, 'timeout').then((x) => {
               if (x === null || x === 'default') {
-                c.message.channel.sendMessage(`Wait ${Math.round(y)} more seconds before using that again.`)
+                c.message.channel.sendMessage(Lang.WaitBeforeUse(y))
               } else {
                 c.message.channel.sendMessage(x.replace(/%user/g, c.message.author.mention).replace(/%server/g, c.message.guild.name).replace(/%channel/, c.message.channel.name).replace(/%timeout/, Math.round(y)))
               }
@@ -122,8 +123,8 @@ bot.Dispatcher.on(Event.MESSAGE_CREATE, function (c) {
                   try {
                     commands[cmd].fn(c.message, suffix, bot)
                   } catch (e) {
-                    c.message.channel.sendMessage('An error occured while trying to process this command, you should let the bot author know. \n```' + e + '```')
-                    Logger.error(`Command error, thrown by ${commands[cmd].name}: ${e}`)
+                    c.message.channel.sendMessage(Lang.CommandError(e))
+                    Logger.error(Lang.CommandErrorLog(commands, cmd, e))
                   }
                 } else {
                   datacontrol.permissions.checkNSFW(c.message).then(function (q) {
@@ -131,13 +132,13 @@ bot.Dispatcher.on(Event.MESSAGE_CREATE, function (c) {
                       try {
                         commands[cmd].fn(c.message, suffix, bot)
                       } catch (e) {
-                        c.message.channel.sendMessage('An error occured while trying to process this command, you should let the bot author know. \n```' + e + '```')
-                        Logger.error(`Command error, thrown by ${commands[cmd].name}: ${e}`)
+                        c.message.channel.sendMessage(Lang.CommandError(e))
+                        Logger.error(Lang.CommandErrorLog(commands, cmd, e))
                       }
                     } else {
                       datacontrol.customize.reply(c.message, 'nsfw').then((d) => {
                         if (d === null || d === 'default') {
-                          c.message.channel.sendMessage('This channel does not allow NSFW commands, enable them first with `setnsfw`')
+                          c.message.channel.sendMessage(Lang.NoNSFW)
                         } else {
                           c.message.channel.sendMessage(d.replace(/%user/g, c.message.author.mention).replace(/%server/g, c.message.guild.name).replace(/%channel/, c.message.channel.name))
                         }
@@ -266,6 +267,7 @@ process.on('unhandledRejection', (reason, p) => {
 function start () {
   try {
     Config = require('./config.json')
+    Lang = require(`./lang/${Config.language}.js`)
   } catch (e) {
     Logger.error('Config error: ' + e)
     process.exit(0)

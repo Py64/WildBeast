@@ -1,4 +1,5 @@
 {
+  "language": "en",
   "bot": {
     "isbot": true,
     "token": "Bot token",
